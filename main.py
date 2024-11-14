@@ -32,11 +32,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 # Create a new post (only accessible to authors)
-@app.post("/posts/", response_model=List[schema.Post])
+@app.post("/posts/", response_model=schema.Post)
 def create_post(post: schema.PostCreate, db: Session = Depends(get_db),current_user:models.User=Depends(get_current_user)):
     if current_user.role not in ["author", "admin"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    return crud.create_post(db=db, post=post, owner_id=1)  
+    return crud.create_post(db=db, post=post, owner_id=current_user.id)  
 
 # Get a list of posts (public access)
 @app.get("/posts/", response_model=List[schema.Post])
