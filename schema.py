@@ -1,16 +1,20 @@
 from pydantic import BaseModel
 from typing import List, Optional
-
+from datetime import datetime
 class PostBase(BaseModel):
     title: str
     content: str
 
 class PostCreate(PostBase):
-    pass
+    category: Optional[str] = None
+    tags: Optional[List[str]] = []
 
 class Post(PostBase):
     id: int
     owner_id: int
+    category: Optional[str] = None
+    tags: List[str] = []
+    created_at: datetime
     
     class Config:
         orm_mode = True
@@ -45,3 +49,16 @@ class Comment(CommentBase):
 
     class Config:
         orm_mode = True
+class Category(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        orm_mode = True
+
+class Tag(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attribute = True

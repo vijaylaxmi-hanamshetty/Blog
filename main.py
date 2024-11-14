@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException,Query,Path
 from sqlalchemy.orm import Session
 from typing import List,Optional
 import schema 
@@ -8,6 +8,7 @@ from database import SessionLocal, engine
 from auth import get_current_user, create_access_token, get_password_hash, authenticate_user
 from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
+from datetime import datetime
 # Create all the models (tables) in the database
 models.Base.metadata.create_all(bind=engine)
 
@@ -40,10 +41,12 @@ def create_post(post: schema.PostCreate, db: Session = Depends(get_db),current_u
     return crud.create_post(db=db, post=post, owner_id=current_user.id)  
 
 # Get a list of posts (public access)
-@app.get("/posts/", response_model=List[schema.Post])
-def read_posts(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return crud.get_posts(db=db, skip=skip, limit=limit)
-
+@app.get("/posts/", response_model=List[models.Post])
+def get_all_posts(search: Optional[str] = None, category_id: Optional[int] = None,
+                  tag_id: Optional[int] = None, skip: int = 0, limit: int = 10,
+                  db: Session = Depends(get_db)):
+    posts = crud.get_posts(db=db, search=search, category_id=category_id, tag_id=tag_id, skip=skip, limit=limit)
+    return posts
 # Get a single post by ID (public access)
 @app.get("/posts/{post_id}", response_model=schema.Post)
 def read_post(post_id: int, db: Session = Depends(get_db)):
@@ -90,3 +93,48 @@ def unlike_post(post_id: int, db: Session = Depends(get_db), current_user: model
 @app.get("/posts/{post_id}/likes/")
 def get_likes(post_id: int, db: Session = Depends(get_db)):
     return {"likes_count": crud.get_likes(db=db, post_id=post_id)}
+
+
+@app.get("/posts/search", response_model=schema.Post)
+def search_posts(q: str = Query(None), page: int = 1, size: int = 10, db: Session = Depends(get_db)):
+    skip = (page - 1) * size
+    posts = crud.get_posts(db, search=q, skip=skip, limit=size)
+    total = crud.count_posts(db, search=q)
+    return {"total": total, "page": page, "page_size": size, "data": posts}
+
+@app.get("/posts/filter/category/{category_id}", response_model=schema.Post)
+def filter_posts_by_category(category_id: int = Path(...), page: int = 1, size: int = 10, db: Session = Depends(get_db)):
+    skip = (page - 1) * size
+    posts =crud. get_posts(db, category_id=category_id, skip=skip, limit=size)
+    total = crud.count_posts(db, category_id=category_id)
+    return {"total": total, "page": page, "page_size": size, "data": posts}
+
+@app.get("/posts/filter/tag/{tag_id}", response_model=schema.Post)
+def filter_posts_by_tag(tag_id: int = Path(...), page: int = 1, size: int = 10, db: Session = Depends(get_db)):
+    skip = (page - 1) * size
+    posts = crud.get_posts(db, tag_id=tag_id, skip=skip, limit=size)
+    total = crud.count_posts(db, tag_id=tag_id)
+    return {"total": total, "page": page, "page_size": size, "data": posts}
+
+@app.get("/posts/filter/date", response_model=schema.Post)
+def filter_posts_by_date(start_date: datetime, end_date: datetime, page: int = 1, size: int = 10, db: Session = Depends(get_db)):
+    skip = (page - 1) * size
+    posts = crud.get_posts(db, start_date=start_date, end_date=end_date, skip=skip, limit=size)
+    total = crud.count_posts(db, start_date=start_date, end_date=end_date)
+    return {"total": total, "page": page, "page_size": size, "data": posts}
+
+@app.get("/posts", response_model=schema.Post)
+def combined_search_filter(
+    q: Optional[str] = Query(None),
+    category_id: Optional[int] = Query(None),
+    tag_id: Optional[int] = Query(None),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    page: int = 1,
+    size: int = 10,
+    db: Session = Depends(get_db)
+):
+    skip = (page - 1) * size
+    posts = crud.get_posts(db, search=q, category_id=category_id, tag_id=tag_id, start_date=start_date, end_date=end_date, skip=skip, limit=size)
+    total = crud.count_posts(db, search=q, category_id=category_id, tag_id=tag_id, start_date=start_date, end_date=end_date)
+    return {"total": total, "page": page, "page_size": size, "data": posts}

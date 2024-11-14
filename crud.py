@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
 import models
 import schema
+from typing import List, Optional
 from fastapi import HTTPException
-
+from datetime import datetime
+from sqlalchemy import or_, and_
 # Create User
 def create_user(db: Session, user: schema.UserCreate, hashed_password: str):
     db_user = models.User(username=user.username, hashed_password=hashed_password, role=user.role)
@@ -25,9 +27,24 @@ def create_post(db: Session, post: schema.PostCreate, owner_id: int):
     db.refresh(db_post)
     return db_post
 
-# Read All Posts
-def get_posts(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Post).offset(skip).limit(limit).all()
+# Get Posts
+def get_posts(db: Session, search: str = None, category_id: int = None, tag_id: int = None,
+              start_date: datetime = None, end_date: datetime = None, skip: int = 0, limit: int = 10):
+    query = db.query(models.Post)
+
+    if search:
+        query = query.filter(or_(models.Post.title.contains(search), models.Post.content.contains(search)))
+
+    if category_id:
+        query = query.filter(models.Post.category_id == category_id)
+
+    if tag_id:
+        query = query.join(models.Post.tags).filter(models.Tag.id == tag_id)
+
+    if start_date and end_date:
+        query = query.filter(and_(models.Post.created_at >= start_date,models. Post.created_at <= end_date))
+
+    return query.offset(skip).limit(limit).all()
 
 # Read a Single Post
 def get_post(db: Session, post_id: int):
@@ -94,3 +111,4 @@ def get_likes(db: Session, post_id: int):
     if db_post:
         return {"likes_count": len(db_post.likes)}  
     raise HTTPException(status_code=404, detail="Post not found")
+
