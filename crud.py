@@ -10,7 +10,8 @@ def create_user(db: Session, user: schema.UserCreate, hashed_password: str):
     db.commit()
     db.refresh(db_user)
     return db_user
-
+def get_user(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 # Create Post
