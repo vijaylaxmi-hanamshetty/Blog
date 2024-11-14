@@ -8,7 +8,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    role = Column(String, default="reader")  # Possible roles: "admin", "author", "reader"
+    role = Column(String, default="reader")  
     posts = relationship("Post", back_populates="owner")
 
 class Post(Base):
