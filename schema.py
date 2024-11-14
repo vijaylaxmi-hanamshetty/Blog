@@ -17,7 +17,7 @@ class Post(PostBase):
 
 class UserBase(BaseModel):
     username: str
-
+    role:str
 class UserCreate(UserBase):
     password: str
 
