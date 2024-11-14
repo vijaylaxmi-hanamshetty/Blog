@@ -11,7 +11,7 @@ class PostCreate(PostBase):
 class Post(PostBase):
     id: int
     owner_id: int
-    comments: List['Comment'] = [] 
+    
     class Config:
         orm_mode = True
 

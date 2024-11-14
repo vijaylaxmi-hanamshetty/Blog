@@ -81,13 +81,16 @@ def unlike_post(db: Session, post_id: int, user_id: int):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if db_post and db_user:
-        db_user.liked_posts.remove(db_post)  
-        return {"message": "Post unliked"}
-    raise HTTPException(status_code=404, detail="Post or User not found")
+       if db_post in db_user.liked_posts:
+            db_user.liked_posts.remove(db_post)
+            db.commit()   
+            return {"message": "Post unliked"}
+    else:
+            raise HTTPException(status_code=400, detail="Post not liked yet")
 
 # Get Likes for a Post
 def get_likes(db: Session, post_id: int):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if db_post:
-        return len(db_post.likes)  # Count of likes for the post
+        return {"likes_count": len(db_post.likes)}  
     raise HTTPException(status_code=404, detail="Post not found")
