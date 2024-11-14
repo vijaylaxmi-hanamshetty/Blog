@@ -37,6 +37,10 @@ class Post(Base):
     likes = relationship("User", secondary=like_table, back_populates="liked_posts") 
     category = Column(String, index=True)
     tags = relationship("Tag", secondary=post_tags, back_populates="posts")
+    category_id = Column(Integer, ForeignKey('categories.id'))  # Foreign key for Category
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class Comment(Base):
     __tablename__ = "comments"
     
@@ -45,10 +49,11 @@ class Comment(Base):
     
     post_id = Column(Integer, ForeignKey("posts.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
     post = relationship("Post", back_populates="comments")
     user = relationship("User", back_populates="comments")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    
 class Category(Base):
     __tablename__ = 'categories'
     id = Column(Integer, primary_key=True, index=True)
