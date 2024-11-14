@@ -31,6 +31,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
+
 # Create a new post (only accessible to authors)
 @app.post("/posts/", response_model=schema.Post)
 def create_post(post: schema.PostCreate, db: Session = Depends(get_db),current_user:models.User=Depends(get_current_user)):
@@ -65,3 +66,27 @@ def delete_post(post_id: int, db: Session = Depends(get_db), current_user: model
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return crud.delete_post(db=db, post_id=post_id)
+# Create a new comment for a post
+@app.post("/posts/{post_id}/comments/", response_model=schema.Comment)
+def create_comment(post_id: int, comment: schema.CommentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return crud.create_comment(db=db, comment=comment, post_id=post_id, user_id=current_user.id)
+
+# Get all comments for a post
+@app.get("/posts/{post_id}/comments/", response_model=List[schema.Comment])
+def read_comments(post_id: int, db: Session = Depends(get_db)):
+    return crud.get_comments(db=db, post_id=post_id)
+
+# Like a post
+@app.post("/posts/{post_id}/like/")
+def like_post(post_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return crud.like_post(db=db, post_id=post_id, user_id=current_user.id)
+
+# Unlike a post
+@app.delete("/posts/{post_id}/like/")
+def unlike_post(post_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return crud.unlike_post(db=db, post_id=post_id, user_id=current_user.id)
+
+# Get number of likes on a post
+@app.get("/posts/{post_id}/likes/")
+def get_likes(post_id: int, db: Session = Depends(get_db)):
+    return {"likes_count": crud.get_likes(db=db, post_id=post_id)}
