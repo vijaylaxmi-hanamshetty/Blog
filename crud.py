@@ -10,8 +10,11 @@ def create_user(db: Session, user: schema.UserCreate, hashed_password: str):
     db.commit()
     db.refresh(db_user)
     return db_user
+
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
+
+
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 # Create Post
@@ -52,3 +55,39 @@ def delete_post(db: Session, post_id: int):
     db.delete(db_post)
     db.commit()
     return {"message": "Post deleted successfully"}
+#Create Comment
+def create_comment(db: Session, comment: schema.CommentCreate, post_id: int, user_id: int):
+    db_comment = models.Comment(content=comment.content, post_id=post_id, user_id=user_id)
+    db.add(db_comment)
+    db.commit()
+    db.refresh(db_comment)
+    return db_comment
+
+# Get Comments for a Post
+def get_comments(db: Session, post_id: int):
+    return db.query(models.Comment).filter(models.Comment.post_id == post_id).all()
+
+# Like a Post
+def like_post(db: Session, post_id: int, user_id: int):
+    db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_post and db_user:
+        db_user.liked_posts.append(db_post)  
+        return {"message": "Post liked"}
+    raise HTTPException(status_code=404, detail="Post or User not found")
+
+# Unlike a Post
+def unlike_post(db: Session, post_id: int, user_id: int):
+    db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if db_post and db_user:
+        db_user.liked_posts.remove(db_post)  
+        return {"message": "Post unliked"}
+    raise HTTPException(status_code=404, detail="Post or User not found")
+
+# Get Likes for a Post
+def get_likes(db: Session, post_id: int):
+    db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if db_post:
+        return len(db_post.likes)  # Count of likes for the post
+    raise HTTPException(status_code=404, detail="Post not found")
