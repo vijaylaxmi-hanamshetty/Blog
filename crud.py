@@ -105,12 +105,12 @@ def like_post(db: Session, post_id: int, user_id: int):
     raise HTTPException(status_code=404, detail="Post or User not found")
 
 def unlike_post(db: Session, post_id: int, user_id: int):
-    # Ensure you're correctly identifying the like to delete based on both user_id and post_id
+    
     user_like = db.query(models.Post).filter_by(user_id=user_id, post_id=post_id).first()
     
     if user_like:
-        db.delete(user_like)  # Delete the identified record
-        db.commit()  # Commit the transaction to the database
+        db.delete(user_like)  
+        db.commit()  
         return {"msg": "Like removed"}
     else:
         return {"msg": "Like not found"}

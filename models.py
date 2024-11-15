@@ -21,7 +21,7 @@ class User(Base):
     likes = relationship("Like", back_populates="user")
     posts = relationship("Post", back_populates="owner")
     comments = relationship("Comment", back_populates="user")
-    liked_posts = relationship("Post", secondary=user_like_post_table, back_populates="liked_by")  # Correctly referenced here
+    liked_posts = relationship("Post", secondary=user_like_post_table, back_populates="liked_by")  
 
 class Post(Base):
     __tablename__ = "posts"
