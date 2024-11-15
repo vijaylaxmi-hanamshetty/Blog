@@ -42,10 +42,10 @@ def create_post(post: schema.PostCreate, db: Session = Depends(get_db),current_u
 
 # Get a list of posts (public access)
 @app.get("/posts/", response_model=List[schema.Post])
-def get_all_posts(search: Optional[str] = None, category_id: Optional[int] = None, tag_id: Optional[int] = None, 
-                  skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    posts = crud.get_posts(db=db, search=search, category_id=category_id, tag_id=tag_id, skip=skip, limit=limit)
+def get_all_posts(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    posts = crud.get_posts(db=db, skip=skip, limit=limit)
     return posts
+
 # Get a single post by ID (public access)
 @app.get("/posts/{post_id}", response_model=schema.Post)
 def read_post(post_id: int, db: Session = Depends(get_db)):
@@ -93,12 +93,3 @@ def unlike_post(post_id: int, db: Session = Depends(get_db), current_user: model
 def get_likes(post_id: int, db: Session = Depends(get_db)):
     return {"likes_count": crud.get_likes(db=db, post_id=post_id)}
 
-# Combined search and filter for posts with pagination
-@app.get("/posts/search", response_model=schema.Post)
-def search_posts(q: Optional[str] = Query(None), category_id: Optional[int] = Query(None), tag_id: Optional[int] = Query(None),
-                  start_date: Optional[datetime] = Query(None), end_date: Optional[datetime] = Query(None),
-                  page: int = 1, size: int = 10, db: Session = Depends(get_db)):
-    skip = (page - 1) * size
-    posts = crud.get_posts(db, search=q, category_id=category_id, tag_id=tag_id, start_date=start_date, end_date=end_date, skip=skip, limit=size)
-    total = crud.count_posts(db, search=q, category_id=category_id, tag_id=tag_id, start_date=start_date, end_date=end_date)
-    return {"total": total, "page": page, "page_size": size, "data": posts}

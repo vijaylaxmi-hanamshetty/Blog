@@ -28,23 +28,8 @@ def create_post(db: Session, post: schema.PostCreate, owner_id: int):
     return db_post
 
 # Get Posts
-def get_posts(db: Session, search: str = None, category_id: int = None, tag_id: int = None,
-              start_date: datetime = None, end_date: datetime = None, skip: int = 0, limit: int = 10):
-    query = db.query(models.Post)
-
-    if search:
-        query = query.filter(or_(models.Post.title.contains(search), models.Post.content.contains(search)))
-
-    if category_id:
-        query = query.filter(models.Post.category_id == category_id)
-
-    if tag_id:
-        query = query.join(models.Post.tags).filter(models.Tag.id == tag_id)
-
-    if start_date and end_date:
-        query = query.filter(and_(models.Post.created_at >= start_date,models. Post.created_at <= end_date))
-
-    return query.offset(skip).limit(limit).all()
+def get_posts(db: Session, skip: int = 0, limit: int = 10):
+ return db.query(models.Post).offset(skip).limit(limit).all()
 
 # Read a Single Post
 def get_post(db: Session, post_id: int):
