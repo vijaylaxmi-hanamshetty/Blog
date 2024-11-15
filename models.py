@@ -35,7 +35,7 @@ class Post(Base):
     owner = relationship("User", back_populates="posts")
     comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
     likes = relationship("User", secondary=like_table, back_populates="liked_posts") 
-    category = Column(String, index=True)
+    ategory = relationship("Category", back_populates="posts")
     tags = relationship("Tag", secondary=post_tags, back_populates="posts")
     category_id = Column(Integer, ForeignKey('categories.id'))  # Foreign key for Category
     created_at = Column(DateTime, default=datetime.utcnow)
