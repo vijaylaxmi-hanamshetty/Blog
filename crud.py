@@ -5,6 +5,7 @@ from typing import List, Optional
 from fastapi import HTTPException
 from datetime import datetime
 from sqlalchemy import or_, and_
+from sqlalchemy.orm.exc import NoResultFound
 # Create User
 def create_user(db: Session, user: schema.UserCreate, hashed_password: str):
     db_user = models.User(username=user.username, hashed_password=hashed_password, role=user.role)
@@ -19,17 +20,36 @@ def get_user(db: Session, user_id: int):
 
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
-# Create Post
+# Create a Post
 def create_post(db: Session, post: schema.PostCreate, owner_id: int):
-    db_post = models.Post(**post.dict(), owner_id=owner_id)
+    db_post = models.Post(
+        title=post.title,
+        content=post.content,
+        category=post.category,
+        tags=post.tags,
+        owner_id=owner_id
+    )
     db.add(db_post)
     db.commit()
     db.refresh(db_post)
     return db_post
 
-# Get Posts
-def get_posts(db: Session, skip: int = 0, limit: int = 10):
- return db.query(models.Post).offset(skip).limit(limit).all()
+# Get Posts with Optional Filtering and Pagination
+def get_posts(db: Session, search: Optional[str] = None, category: Optional[str] = None, 
+              tags: Optional[str] = None, page: int = 1, limit: int = 10):
+    query = db.query(models.Post)
+    if search:
+        query = query.filter(
+            (models.Post.title.ilike(f"%{search}%")) |
+            (models.Post.content.ilike(f"%{search}%"))
+        )
+    if category:
+        query = query.filter(models.Post.category == category)
+    if tags:
+        query = query.filter(models.Post.tags.contains(tags))
+    total = query.count()
+    posts = query.offset((page - 1) * limit).limit(limit).all()
+    return total, posts
 
 # Read a Single Post
 def get_post(db: Session, post_id: int):
@@ -38,7 +58,7 @@ def get_post(db: Session, post_id: int):
         raise HTTPException(status_code=404, detail="Post not found")
     return post
 
-# Update Post
+# Update a Post
 def update_post(db: Session, post_id: int, post_data: schema.PostCreate):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if db_post is None:
@@ -49,7 +69,7 @@ def update_post(db: Session, post_id: int, post_data: schema.PostCreate):
     db.refresh(db_post)
     return db_post
 
-# Delete Post
+# Delete a Post
 def delete_post(db: Session, post_id: int):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if db_post is None:
@@ -57,9 +77,14 @@ def delete_post(db: Session, post_id: int):
     db.delete(db_post)
     db.commit()
     return {"message": "Post deleted successfully"}
-#Create Comment
+
+# Create a Comment
 def create_comment(db: Session, comment: schema.CommentCreate, post_id: int, user_id: int):
-    db_comment = models.Comment(content=comment.content, post_id=post_id, user_id=user_id)
+    db_comment = models.Comment(
+        content=comment.content,
+        post_id=post_id,
+        user_id=user_id
+    )
     db.add(db_comment)
     db.commit()
     db.refresh(db_comment)
@@ -75,25 +100,17 @@ def like_post(db: Session, post_id: int, user_id: int):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if db_post and db_user:
         db_user.liked_posts.append(db_post)  
+        db.commit()
         return {"message": "Post liked"}
     raise HTTPException(status_code=404, detail="Post or User not found")
 
-# Unlike a Post
 def unlike_post(db: Session, post_id: int, user_id: int):
-    db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
-    if db_post and db_user:
-       if db_post in db_user.liked_posts:
-            db_user.liked_posts.remove(db_post)
-            db.commit()   
-            return {"message": "Post unliked"}
+    # Ensure you're correctly identifying the like to delete based on both user_id and post_id
+    user_like = db.query(models.Post).filter_by(user_id=user_id, post_id=post_id).first()
+    
+    if user_like:
+        db.delete(user_like)  # Delete the identified record
+        db.commit()  # Commit the transaction to the database
+        return {"msg": "Like removed"}
     else:
-            raise HTTPException(status_code=400, detail="Post not liked yet")
-
-# Get Likes for a Post
-def get_likes(db: Session, post_id: int):
-    db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
-    if db_post:
-        return {"likes_count": len(db_post.likes)}  
-    raise HTTPException(status_code=404, detail="Post not found")
-
+        return {"msg": "Like not found"}

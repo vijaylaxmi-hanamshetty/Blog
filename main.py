@@ -40,11 +40,11 @@ def create_post(post: schema.PostCreate, db: Session = Depends(get_db),current_u
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     return crud.create_post(db=db, post=post, owner_id=current_user.id)  
 
-# Get a list of posts (public access)
-@app.get("/posts/", response_model=List[schema.Post])
-def get_all_posts(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    posts = crud.get_posts(db=db, skip=skip, limit=limit)
-    return posts
+# Get posts with search, filtering, and pagination
+@app.get("/posts/")
+def get_posts(search: str = None, category: str = None, tags: str = None, page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    total, posts = crud.get_posts(db, search, category, tags, page, limit)
+    return {"total": total, "page": page, "posts": posts}
 
 # Get a single post by ID (public access)
 @app.get("/posts/{post_id}", response_model=schema.Post)
@@ -62,34 +62,30 @@ def update_post(post_id: int, post: schema.PostCreate, db: Session = Depends(get
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     return crud.update_post(db=db, post_id=post_id, post_data=post)
 
-# Delete a post by ID(only accessible to admin)
-@app.delete("/posts/{post_id}")
-def delete_post(post_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return crud.delete_post(db=db, post_id=post_id)
-# Create a new comment for a post
-@app.post("/posts/{post_id}/comments/", response_model=schema.Comment)
-def create_comment(post_id: int, comment: schema.CommentCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return crud.create_comment(db=db, comment=comment, post_id=post_id, user_id=current_user.id)
+# Delete a post
+@app.delete("/posts/{post_id}/")
+def delete_post(post_id: int, db: Session = Depends(get_db), current_user: schema.User = Depends(get_current_user)):
+    db_post = crud.get_post(db, post_id)
+    if db_post.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this post")
+    return crud.delete_post(db, post_id)
 
-# Get all comments for a post
+# Create a comment
+@app.post("/posts/{post_id}/comments/", response_model=schema.Comment)
+def create_comment(post_id: int, comment: schema.CommentCreate, db: Session = Depends(get_db), current_user: schema.User = Depends(get_current_user)):
+    return crud.create_comment(db, comment, post_id, user_id=current_user.id)
+
+# Get comments for a post
 @app.get("/posts/{post_id}/comments/", response_model=List[schema.Comment])
 def read_comments(post_id: int, db: Session = Depends(get_db)):
-    return crud.get_comments(db=db, post_id=post_id)
+    return crud.get_comments(db, post_id)
 
 # Like a post
 @app.post("/posts/{post_id}/like/")
-def like_post(post_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return crud.like_post(db=db, post_id=post_id, user_id=current_user.id)
+def like_post(post_id: int, db: Session = Depends(get_db), current_user: schema.User = Depends(get_current_user)):
+    return crud.like_post(db, post_id, current_user.id)
 
 # Unlike a post
 @app.delete("/posts/{post_id}/like/")
-def unlike_post(post_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return crud.unlike_post(db=db, post_id=post_id, user_id=current_user.id)
-
-# Get number of likes on a post
-@app.get("/posts/{post_id}/likes/")
-def get_likes(post_id: int, db: Session = Depends(get_db)):
-    return {"likes_count": crud.get_likes(db=db, post_id=post_id)}
-
+def unlike_post(post_id: int, db: Session = Depends(get_db), current_user: schema.User = Depends(get_current_user)):
+    return crud.unlike_post(db, post_id, current_user.id)

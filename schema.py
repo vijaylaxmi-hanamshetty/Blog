@@ -9,13 +9,15 @@ class PostBase(BaseModel):
 
 # Model for creating a Post, with optional category and tags
 class PostCreate(PostBase):
-   pass
+    category: Optional[str] = None
+    tags: Optional[str] = None
 
 # Response model for Post, including additional fields for retrieval
 class Post(PostBase):
     id: int
     owner_id: int
-    
+    comments: List["Comment"] = []  # Nested comments in response
+    likes_count: int = 0
     created_at: datetime
 
     class Config:
@@ -33,7 +35,7 @@ class UserCreate(UserBase):
 # Response model for User, including posts list
 class User(UserBase):
     id: int
-    
+    posts: List[Post] = [] 
 
     class Config:
         orm_mode = True
@@ -52,10 +54,11 @@ class CommentCreate(CommentBase):
     pass
 
 # Response model for Comment
-class Comment(CommentBase):
+class Comment(CommentBase):  
     id: int
-    
+    post_id: int
+    user_id: int
+    created_at: datetime
 
     class Config:
         orm_mode = True
-
