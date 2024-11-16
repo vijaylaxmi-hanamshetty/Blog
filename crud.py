@@ -21,13 +21,14 @@ def get_user(db: Session, user_id: int):
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 # Create a Post
-def create_post(db: Session, post: schema.PostCreate, owner_id: int):
+def create_post(db: Session, post: schema.PostCreate, owner_id: int, image_url: Optional[str] = None):
     db_post = models.Post(
         title=post.title,
         content=post.content,
         category=post.category,
         tags=post.tags,
-        owner_id=owner_id
+        owner_id=owner_id,
+        image_url=image_url
     )
     db.add(db_post)
     db.commit()
@@ -59,12 +60,13 @@ def get_post(db: Session, post_id: int):
     return post
 
 # Update a Post
-def update_post(db: Session, post_id: int, post_data: schema.PostCreate):
+def update_post(db: Session, post_id: int, post_data: schema.PostUpdate, image_url: Optional[str] = None):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if db_post is None:
         raise HTTPException(status_code=404, detail="Post not found")
     for key, value in post_data.dict().items():
         setattr(db_post, key, value)
+    db_post.image_url = image_url if image_url else db_post.image_url
     db.commit()
     db.refresh(db_post)
     return db_post
@@ -105,12 +107,13 @@ def like_post(db: Session, post_id: int, user_id: int):
     raise HTTPException(status_code=404, detail="Post or User not found")
 
 def unlike_post(db: Session, post_id: int, user_id: int):
-    
-    user_like = db.query(models.Post).filter_by(user_id=user_id, post_id=post_id).first()
-    
-    if user_like:
-        db.delete(user_like)  
-        db.commit()  
-        return {"msg": "Like removed"}
-    else:
-        return {"msg": "Like not found"}
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if not db_user or not db_post:
+        raise HTTPException(status_code=404, detail="Post or User not found")
+    if db_post in db_user.liked_posts:
+        db_user.liked_posts.remove(db_post) 
+        return {"message": "Like removed"}
+    return {"message": "Like not found"}
+
+

@@ -30,7 +30,7 @@ class Post(Base):
     title = Column(String, index=True)
     content = Column(Text, nullable=False)
     category = Column(String, index=True)
-    image_url = Column(String, nullable=True) 
+    image_url = Column(String,nullable=True ) 
     tags = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     owner_id = Column(Integer, ForeignKey("users.id"))
@@ -47,15 +47,15 @@ class Comment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"))
     post_id = Column(Integer, ForeignKey("posts.id"))
-
     user = relationship("User", back_populates="comments")
     post = relationship("Post", back_populates="comments")
+    
 
 class Like(Base):
     __tablename__ = 'likes'
 
     id = Column(Integer, primary_key=True, index=True)
-    post_id = Column(Integer, ForeignKey('posts.id'))
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    post_id = Column(Integer, ForeignKey('posts.id'),nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"),nullable=False)
     post = relationship("Post", back_populates="likes")
     user = relationship("User", back_populates="likes")
