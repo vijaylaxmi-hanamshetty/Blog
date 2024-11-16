@@ -12,7 +12,8 @@ class PostBase(BaseModel):
 class PostCreate(PostBase):
     category: Optional[str] = None
     tags: Optional[str] = None
-
+    image_path:Optional[str]=None
+    
 # Response model for Post, including additional fields for retrieval
 class Post(PostBase):
     id: int

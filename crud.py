@@ -21,13 +21,14 @@ def get_user(db: Session, user_id: int):
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 # Create a Post
-def create_post(db: Session, post: schema.PostCreate, owner_id: int, ):
+def create_post(db: Session, post: schema.PostCreate, owner_id: int,image_path:str ):
     db_post = models.Post(
         title=post.title,
         content=post.content,
         category=post.category,
         tags=post.tags,
         owner_id=owner_id,
+        image_path=image_path
         )
     db.add(db_post)
     db.commit()

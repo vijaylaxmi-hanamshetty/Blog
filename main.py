@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException,Query,Path,UploadFile,File
+from fastapi import FastAPI, Depends, HTTPException,Path,UploadFile,File
 from sqlalchemy.orm import Session
 from typing import List,Optional
 import schema 
@@ -12,12 +12,15 @@ from auth import get_current_user, create_access_token, get_password_hash, authe
 from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
 from datetime import datetime
+from pathlib import Path
+from fastapi import Form
 # Create all the models (tables) in the database
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-
+UPLOAD_DIR = Path("static/images")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Mount static files
 
@@ -39,14 +42,46 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.post("/posts/")
+async def create_post(
+    title: str = Form(...),
+    content: str = Form(...),
+    category: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    # Debugging: log incoming form data
+    print(f"Title: {title}, Content: {content}, Category: {category}, Tags: {tags}, Image: {image}")
 
-# Create a new post (only accessible to authors)
-@app.post("/posts/", response_model=schema.Post)
-def create_post(post: schema.PostCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     if current_user.role not in ["author", "admin"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-   
-    return crud.create_post(db=db, post=post, owner_id=current_user.id, )
+
+    if not title.strip() or not content.strip():
+        raise HTTPException(status_code=400, detail="Title and content cannot be empty")
+    
+    image_path = None
+    if image:
+        file_path = UPLOAD_DIR / image.filename
+        with file_path.open("wb") as f:
+            f.write(await image.read())
+        image_path = str(file_path)
+    
+    post = schema.PostCreate(
+        title=title,
+        content=content,
+        category=category,
+        tags=tags,
+        image_path=image_path
+    )
+    
+    return crud.create_post(
+        db=db,
+        post=post,
+        owner_id=current_user.id,
+        image_path=image_path,
+    )
 
 
 # Get posts with search, filtering, and pagination
