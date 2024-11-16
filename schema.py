@@ -6,7 +6,7 @@ from datetime import datetime
 class PostBase(BaseModel):
     title: str
     content: str
-    image_url:Optional[str]=None
+    
 
 # Model for creating a Post, with optional category and tags
 class PostCreate(PostBase):
@@ -26,7 +26,7 @@ class Post(PostBase):
 class PostUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
-    image_url: Optional[str] = None
+    
     category: Optional[str] = None
     tags: Optional[str] = None
 # Base model for User

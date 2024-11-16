@@ -21,15 +21,14 @@ def get_user(db: Session, user_id: int):
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 # Create a Post
-def create_post(db: Session, post: schema.PostCreate, owner_id: int, image_url: Optional[str] = None):
+def create_post(db: Session, post: schema.PostCreate, owner_id: int, ):
     db_post = models.Post(
         title=post.title,
         content=post.content,
         category=post.category,
         tags=post.tags,
         owner_id=owner_id,
-        image_url=image_url
-    )
+        )
     db.add(db_post)
     db.commit()
     db.refresh(db_post)
@@ -66,7 +65,7 @@ def update_post(db: Session, post_id: int, post_data: schema.PostUpdate, image_u
         raise HTTPException(status_code=404, detail="Post not found")
     for key, value in post_data.dict().items():
         setattr(db_post, key, value)
-    db_post.image_url = image_url if image_url else db_post.image_url
+    
     db.commit()
     db.refresh(db_post)
     return db_post
@@ -115,5 +114,12 @@ def unlike_post(db: Session, post_id: int, user_id: int):
         db_user.liked_posts.remove(db_post) 
         return {"message": "Like removed"}
     return {"message": "Like not found"}
+
+
+
+
+
+
+
 
 

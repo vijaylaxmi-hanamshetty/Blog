@@ -30,7 +30,7 @@ class Post(Base):
     title = Column(String, index=True)
     content = Column(Text, nullable=False)
     category = Column(String, index=True)
-    image_url = Column(String,nullable=True ) 
+     
     tags = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     owner_id = Column(Integer, ForeignKey("users.id"))
