@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from pathlib import Path
 import models
 import schema
 from typing import List, Optional
@@ -76,6 +77,12 @@ def delete_post(db: Session, post_id: int):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if db_post is None:
         raise HTTPException(status_code=404, detail="Post not found")
+    
+      # Delete the associated image if exists
+    if db_post.image_path:
+        image_path = Path(db_post.image_path)
+        if image_path.exists():
+            image_path.unlink()  
     db.delete(db_post)
     db.commit()
     return {"message": "Post deleted successfully"}

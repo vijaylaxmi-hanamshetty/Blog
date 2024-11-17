@@ -3,8 +3,6 @@ from sqlalchemy.orm import Session
 from typing import List,Optional
 import schema 
 import crud
-from fastapi.staticfiles import StaticFiles
-
 from pathlib import Path
 import models
 from database import SessionLocal, engine
@@ -104,7 +102,6 @@ def update_post(post_id: int, post: schema.PostCreate,  db: Session = Depends(ge
     if db_post.owner_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
-    
     return crud.update_post(db=db, post_id=post_id, post_data=post,)
 
 # Delete a post
@@ -113,6 +110,10 @@ def delete_post(post_id: int, db: Session = Depends(get_db), current_user: schem
     db_post = crud.get_post(db, post_id)
     if db_post.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this post")
+    if db_post.image_path:
+        image_path = Path(db_post.image_path)
+        if image_path.exists():
+            image_path.unlink()
     return crud.delete_post(db, post_id)
 
 # Create a comment
